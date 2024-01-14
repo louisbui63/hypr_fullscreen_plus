@@ -1,5 +1,5 @@
-#include "Hyprland/src/Window.hpp"
-#include "Hyprland/src/plugins/PluginAPI.hpp"
+#include "hyprland/src/Window.hpp"
+#include "hyprland/src/plugins/PluginAPI.hpp"
 #include <cstdint>
 #include <unordered_map>
 
