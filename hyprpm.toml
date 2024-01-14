@@ -6,4 +6,4 @@ authors = ["louisbui63"]
 description = "Makes fullscreen better"
 authors = ["louisbui63"]
 output = "hypr_fullscreen_plus.so"
-buid = ["make"]
+build = ["make"]
