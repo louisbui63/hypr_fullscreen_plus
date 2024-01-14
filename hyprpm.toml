@@ -1,0 +1,9 @@
+[repository]
+name = "hypr_fullscreen_plus"
+authors = ["louisbui63"]
+
+[hypr_fullscreen_plus]
+description = "Makes fullscreen better"
+authors = ["louisbui63"]
+output = "hypr_fullscreen_plus.so"
+buid = ["make"]
