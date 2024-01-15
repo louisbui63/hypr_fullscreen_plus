@@ -53,7 +53,8 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
       pWindow->m_vRealPosition = u.position;
     }
     if (u.was_already_fs) {
-      thisptr->setWindowFullscreen(u.old_fs, true, FULLSCREEN_FULL);
+      if (thisptr->windowExists(u.old_fs))
+        thisptr->setWindowFullscreen(u.old_fs, true, FULLSCREEN_FULL);
     }
     PINNED_FULLSCREEN.erase((uintptr_t)pWindow);
   }
