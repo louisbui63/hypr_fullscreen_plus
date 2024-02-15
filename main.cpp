@@ -53,8 +53,8 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
       const auto PWORKSPACE =
           thisptr->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
-      PWORKSPACE->m_pLastFocusedWindow = thisptr->vectorToWindowTiled(
-          g_pInputManager->getMouseCoordsInternal());
+      PWORKSPACE->m_pLastFocusedWindow = thisptr->vectorToWindowUnified(
+          g_pInputManager->getMouseCoordsInternal(), USE_PROP_TILED);
     }
     pWindow->m_bIsFloating = !pWindow->m_bIsFloating;
     pWindow->updateDynamicRules();
@@ -92,8 +92,8 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
       const auto PWORKSPACE =
           thisptr->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
-      PWORKSPACE->m_pLastFocusedWindow = thisptr->vectorToWindowTiled(
-          g_pInputManager->getMouseCoordsInternal());
+      PWORKSPACE->m_pLastFocusedWindow = thisptr->vectorToWindowUnified(
+          g_pInputManager->getMouseCoordsInternal(), USE_PROP_TILED);
     }
 
     if (u.was_already_fs) {
