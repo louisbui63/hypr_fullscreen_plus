@@ -1,5 +1,5 @@
 #include "hyprland/src/Compositor.hpp"
-#include "hyprland/src/Window.hpp"
+#include "hyprland/src/desktop/Window.hpp"
 #include "hyprland/src/plugins/PluginAPI.hpp"
 #include <cstdint>
 #include <unordered_map>
@@ -38,8 +38,8 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
       old_fs = fs_w;
     }
 
-    Status st = {pWindow->m_bPinned, pWindow->m_vRealSize.vec(),
-                 pWindow->m_vRealPosition.vec(), was_already_fs, old_fs};
+    Status st = {pWindow->m_bPinned, pWindow->m_vRealSize.value(),
+                 pWindow->m_vRealPosition.value(), was_already_fs, old_fs};
 
     PINNED_FULLSCREEN[(uintptr_t)pWindow] = st;
     if (pWindow->m_bPinned) {
@@ -72,13 +72,13 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
     if (pWindow->m_bIsFloating) {
       // pWindow->m_vRealSize = u.size;
       g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(
-          u.size - pWindow->m_vRealSize.goalv(), CORNER_NONE, pWindow);
-      if (pWindow->m_vRealSize.goalv().x > 1 &&
-          pWindow->m_vRealSize.goalv().y > 1)
+          u.size - pWindow->m_vRealSize.goal(), CORNER_NONE, pWindow);
+      if (pWindow->m_vRealSize.goal().x > 1 &&
+          pWindow->m_vRealSize.goal().y > 1)
         pWindow->setHidden(false);
       // pWindow->m_vRealPosition = u.position;
       g_pLayoutManager->getCurrentLayout()->moveActiveWindow(
-          u.position - pWindow->m_vRealPosition.goalv(), pWindow);
+          u.position - pWindow->m_vRealPosition.goal(), pWindow);
     }
 
     if (pWindow->m_bIsFloating && u.pinned) {
