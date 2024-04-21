@@ -24,14 +24,14 @@ typedef void (*origSetWindowFullscreen)(CCompositor *, CWindow *, bool, int8_t);
 void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
                            int8_t mode) {
 
-  const auto PWORKSPACE = thisptr->getWorkspaceByID(pWindow->m_iWorkspaceID);
+  const auto PWORKSPACE = thisptr->getWorkspaceByID(pWindow->workspaceID());
 
   if (on && pWindow->m_bIsFloating) {
     bool was_already_fs = false;
     CWindow *old_fs = nullptr;
     if (PWORKSPACE->m_bHasFullscreenWindow) {
       CWindow *fs_w =
-          thisptr->getFullscreenWindowOnWorkspace(pWindow->m_iWorkspaceID);
+          thisptr->getFullscreenWindowOnWorkspace(pWindow->workspaceID());
 
       thisptr->setWindowFullscreen(fs_w, false, FULLSCREEN_FULL);
       was_already_fs = true;
@@ -44,14 +44,15 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
     PINNED_FULLSCREEN[(uintptr_t)pWindow] = st;
     if (pWindow->m_bPinned) {
       pWindow->m_bPinned = false;
-      pWindow->m_iWorkspaceID =
-          thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace;
+      // pWindow->workspaceID() =
+      //     thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace;
+      pWindow->moveToWorkspace(
+          thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace);
 
       pWindow->updateDynamicRules();
       thisptr->updateWindowAnimatedDecorationValues(pWindow);
 
-      const auto PWORKSPACE =
-          thisptr->getWorkspaceByID(pWindow->m_iWorkspaceID);
+      const auto PWORKSPACE = thisptr->getWorkspaceByID(pWindow->workspaceID());
 
       PWORKSPACE->m_pLastFocusedWindow = thisptr->vectorToWindowUnified(
           g_pInputManager->getMouseCoordsInternal(), USE_PROP_TILED);
@@ -83,14 +84,15 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
 
     if (pWindow->m_bIsFloating && u.pinned) {
       pWindow->m_bPinned = true;
-      pWindow->m_iWorkspaceID =
-          thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace;
+      // pWindow->workspaceID() =
+      //     thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace;
+      pWindow->moveToWorkspace(
+          thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace);
 
       pWindow->updateDynamicRules();
       thisptr->updateWindowAnimatedDecorationValues(pWindow);
 
-      const auto PWORKSPACE =
-          thisptr->getWorkspaceByID(pWindow->m_iWorkspaceID);
+      const auto PWORKSPACE = thisptr->getWorkspaceByID(pWindow->workspaceID());
 
       PWORKSPACE->m_pLastFocusedWindow = thisptr->vectorToWindowUnified(
           g_pInputManager->getMouseCoordsInternal(), USE_PROP_TILED);
