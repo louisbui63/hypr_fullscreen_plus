@@ -18,7 +18,7 @@ struct {
 
 } typedef Status;
 
-std::unordered_map<uintptr_t, Status> PINNED_FULLSCREEN{};
+std::unordered_map<PHLWINDOW, Status> PINNED_FULLSCREEN{};
 
 typedef void (*origSetWindowFullscreen)(CCompositor *, PHLWINDOW, bool, int8_t);
 
@@ -42,7 +42,7 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
     Status st = {pWindow->m_bPinned, pWindow->m_vRealSize.value(),
                  pWindow->m_vRealPosition.value(), was_already_fs, old_fs};
 
-    PINNED_FULLSCREEN[(uintptr_t)pWindow] = st;
+    PINNED_FULLSCREEN[pWindow] = st;
     if (pWindow->m_bPinned) {
       pWindow->m_bPinned = false;
       // pWindow->workspaceID() =
@@ -66,11 +66,11 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
   (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
       thisptr, pWindow, on, mode);
 
-  if (!on && PINNED_FULLSCREEN.contains((uintptr_t)pWindow)) {
+  if (!on && PINNED_FULLSCREEN.contains(pWindow)) {
     pWindow->m_bIsFloating = !pWindow->m_bIsFloating;
     pWindow->updateDynamicRules();
     g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(pWindow);
-    auto u = PINNED_FULLSCREEN[(uintptr_t)pWindow];
+    auto u = PINNED_FULLSCREEN[pWindow];
     if (pWindow->m_bIsFloating) {
       // pWindow->m_vRealSize = u.size;
       g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(
@@ -105,7 +105,7 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
             thisptr, u.old_fs, true, FULLSCREEN_FULL);
     }
 
-    PINNED_FULLSCREEN.erase((uintptr_t)pWindow);
+    PINNED_FULLSCREEN.erase(pWindow);
   }
 }
 
