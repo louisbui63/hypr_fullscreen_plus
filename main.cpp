@@ -2,6 +2,7 @@
 #include "hyprland/src/desktop/Window.hpp"
 #include "hyprland/src/plugins/PluginAPI.hpp"
 #include <cstdint>
+#include <memory>
 #include <unordered_map>
 
 inline HANDLE PHANDLE = nullptr;
@@ -13,24 +14,24 @@ struct {
   Vector2D size;
   Vector2D position;
   bool was_already_fs;
-  CWindow *old_fs;
+  PHLWINDOW old_fs;
 
 } typedef Status;
 
 std::unordered_map<uintptr_t, Status> PINNED_FULLSCREEN{};
 
-typedef void (*origSetWindowFullscreen)(CCompositor *, CWindow *, bool, int8_t);
+typedef void (*origSetWindowFullscreen)(CCompositor *, PHLWINDOW, bool, int8_t);
 
-void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
+void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
                            int8_t mode) {
 
   const auto PWORKSPACE = thisptr->getWorkspaceByID(pWindow->workspaceID());
 
   if (on && pWindow->m_bIsFloating) {
     bool was_already_fs = false;
-    CWindow *old_fs = nullptr;
+    PHLWINDOW old_fs = nullptr;
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-      CWindow *fs_w =
+      PHLWINDOW fs_w =
           thisptr->getFullscreenWindowOnWorkspace(pWindow->workspaceID());
 
       thisptr->setWindowFullscreen(fs_w, false, FULLSCREEN_FULL);
@@ -99,7 +100,7 @@ void hkSetWindowFullscreen(CCompositor *thisptr, CWindow *pWindow, bool on,
     }
 
     if (u.was_already_fs) {
-      if (thisptr->windowExists(u.old_fs))
+      if (valid(u.old_fs))
         (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
             thisptr, u.old_fs, true, FULLSCREEN_FULL);
     }
