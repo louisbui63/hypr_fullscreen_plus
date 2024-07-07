@@ -7,3 +7,8 @@ description = "Makes fullscreen better"
 authors = ["louisbui63"]
 output = "hypr_fullscreen_plus.so"
 build = ["make"]
+commit_pins = [
+  ["918d8340afd652b011b937d29d5eea0be08467f5", "ab8edf6e510c0b88524b9be70679768c3e00695d"],
+  ["cba1ade848feac44b2eda677503900639581c3f4", "ab8edf6e510c0b88524b9be70679768c3e00695d"],
+  ["fe7b748eb668136dd0558b7c8279bfcd7ab4d759", "19c0d2a2d972e1e3ee5e6a0b1ad07d2912a6e506"],
+]
