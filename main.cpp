@@ -1,8 +1,6 @@
 #include "hyprland/src/Compositor.hpp"
 #include "hyprland/src/desktop/Window.hpp"
 #include "hyprland/src/plugins/PluginAPI.hpp"
-#include <cstdint>
-#include <memory>
 #include <unordered_map>
 
 inline HANDLE PHANDLE = nullptr;
@@ -15,15 +13,19 @@ struct {
   Vector2D position;
   bool was_already_fs;
   PHLWINDOW old_fs;
+  sFullscreenState old_fs_state;
 
 } typedef Status;
 
 std::unordered_map<PHLWINDOW, Status> PINNED_FULLSCREEN{};
 
-typedef void (*origSetWindowFullscreen)(CCompositor *, PHLWINDOW, bool, int8_t);
+typedef void (*origSetWindowFullscreen)(CCompositor *, PHLWINDOW,
+                                        sFullscreenState);
 
-void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
-                           int8_t mode) {
+void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
+                           sFullscreenState state) {
+
+  bool on = state.client & FSMODE_FULLSCREEN;
 
   const auto PWORKSPACE = thisptr->getWorkspaceByID(pWindow->workspaceID());
 
@@ -34,7 +36,9 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
       PHLWINDOW fs_w =
           thisptr->getFullscreenWindowOnWorkspace(pWindow->workspaceID());
 
-      thisptr->setWindowFullscreen(fs_w, false, FULLSCREEN_FULL);
+      thisptr->setWindowFullscreenState(
+          fs_w,
+          sFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
       was_already_fs = true;
       old_fs = fs_w;
     }
@@ -64,7 +68,7 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
   }
 
   (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
-      thisptr, pWindow, on, mode);
+      thisptr, pWindow, state);
 
   if (!on && PINNED_FULLSCREEN.contains(pWindow)) {
     pWindow->m_bIsFloating = !pWindow->m_bIsFloating;
@@ -102,7 +106,7 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow, bool on,
     if (u.was_already_fs) {
       if (valid(u.old_fs))
         (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
-            thisptr, u.old_fs, true, FULLSCREEN_FULL);
+            thisptr, u.old_fs, u.old_fs_state);
     }
 
     PINNED_FULLSCREEN.erase(pWindow);
@@ -115,7 +119,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   PHANDLE = handle;
 
   static const auto METHODS =
-      HyprlandAPI::findFunctionsByName(PHANDLE, "setWindowFullscreen");
+      HyprlandAPI::findFunctionsByName(PHANDLE, "setWindowFullscreenState");
   g_pSetWindowFullscreenHook = HyprlandAPI::createFunctionHook(
       handle, METHODS[0].address, (void *)&hkSetWindowFullscreen);
 
