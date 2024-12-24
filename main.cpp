@@ -13,17 +13,17 @@ struct {
   Vector2D position;
   bool was_already_fs;
   PHLWINDOW old_fs;
-  sFullscreenState old_fs_state;
+  SFullscreenState old_fs_state;
 
 } typedef Status;
 
 std::unordered_map<PHLWINDOW, Status> PINNED_FULLSCREEN{};
 
 typedef void (*origSetWindowFullscreen)(CCompositor *, PHLWINDOW,
-                                        sFullscreenState);
+                                        SFullscreenState);
 
 void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
-                           sFullscreenState state) {
+                           SFullscreenState state) {
 
   bool on = state.client & FSMODE_FULLSCREEN;
 
@@ -33,12 +33,11 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
     bool was_already_fs = false;
     PHLWINDOW old_fs = nullptr;
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-      PHLWINDOW fs_w =
-          thisptr->getFullscreenWindowOnWorkspace(pWindow->workspaceID());
+      PHLWINDOW fs_w = PWORKSPACE->getFullscreenWindow();
 
       thisptr->setWindowFullscreenState(
           fs_w,
-          sFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
+          SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
       was_already_fs = true;
       old_fs = fs_w;
     }
@@ -52,7 +51,7 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
       // pWindow->workspaceID() =
       //     thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace;
       pWindow->moveToWorkspace(
-          thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace);
+          thisptr->getMonitorFromID(pWindow->m_pMonitor)->activeWorkspace);
 
       pWindow->updateDynamicRules();
       thisptr->updateWindowAnimatedDecorationValues(pWindow);
@@ -92,7 +91,7 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
       // pWindow->workspaceID() =
       //     thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace;
       pWindow->moveToWorkspace(
-          thisptr->getMonitorFromID(pWindow->m_iMonitorID)->activeWorkspace);
+          thisptr->getMonitorFromID(pWindow->m_pMonitor)->activeWorkspace);
 
       pWindow->updateDynamicRules();
       thisptr->updateWindowAnimatedDecorationValues(pWindow);
