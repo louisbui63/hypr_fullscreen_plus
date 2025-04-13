@@ -3,6 +3,9 @@
 #include "hyprland/src/desktop/Workspace.hpp"
 #include "hyprland/src/plugins/PluginAPI.hpp"
 
+#ifdef DEBUG
+#include <string>
+#endif
 #include <unordered_map>
 
 struct Status {
@@ -21,6 +24,15 @@ typedef void (*origSetWindowFullscreen)(CCompositor *, PHLWINDOW,
 
 void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
                            SFullscreenState state) {
+
+#ifdef DEBUG
+  HyprlandAPI::addNotification(PHANDLE,
+                               pWindow->m_szTitle + ";" +
+                                   std::to_string(pWindow->isFullscreen()) +
+                                   "->" + std::to_string(state.internal) + ";" +
+                                   std::to_string(state.client),
+                               CHyprColor(1, 1, 1, 1), 5000);
+#endif
 
   if (pWindow->m_sFullscreenState.internal == state.internal &&
       pWindow->m_sFullscreenState.client == state.client)
@@ -53,20 +65,42 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
   }
 }
 
+inline CFunctionHook *g_pCloseWindowHook = nullptr;
+
+typedef void (*origCloseWindow)(CCompositor *, PHLWINDOW);
+
+void hkCloseWindow(CCompositor *thisptr, PHLWINDOW pWindow) {
+  if (pWindow->isFullscreen() && previous_fs.contains(pWindow)) {
+    Status old_fs = previous_fs[pWindow];
+    if (valid(old_fs.window))
+      (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
+          thisptr, old_fs.window, old_fs.state);
+
+    previous_fs.erase(pWindow);
+  }
+
+  (*(origCloseWindow)g_pCloseWindowHook->m_pOriginal)(thisptr, pWindow);
+}
+
 APICALL EXPORT std::string PLUGIN_API_VERSION() { return HYPRLAND_API_VERSION; }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   PHANDLE = handle;
 
-  static const auto METHODS =
+  static const auto SWFS_METHODS =
       HyprlandAPI::findFunctionsByName(PHANDLE, "setWindowFullscreenState");
   g_pSetWindowFullscreenHook = HyprlandAPI::createFunctionHook(
-      handle, METHODS[0].address, (void *)&hkSetWindowFullscreen);
-
+      handle, SWFS_METHODS[0].address, (void *)&hkSetWindowFullscreen);
   g_pSetWindowFullscreenHook->hook();
 
+  static const auto CW_METHODS =
+      HyprlandAPI::findFunctionsByName(PHANDLE, "closeWindow");
+  g_pCloseWindowHook = HyprlandAPI::createFunctionHook(
+      handle, CW_METHODS[0].address, (void *)&hkCloseWindow);
+  g_pCloseWindowHook->hook();
+
   return {"hypr_fullscreen_plus", "Makes fullscreen better", "louisbui63",
-          "0.0.2"};
+          "0.0.3"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {}
