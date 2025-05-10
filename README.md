@@ -3,7 +3,7 @@
 
 This hyprland plugin still provides :
   - A change in the handling of pinned fullscreen windows, such that un-fullscreening the same window twice won't lead to an unpinned, un-fullscreened window
-  - Un-fullscreening a formerly pinned window will fullscreen the window that was fullscreen before that, if applicable. This is to simulate fullscreen window dtacking.
+  - Un-fullscreening a formerly pinned window will fullscreen the window that was fullscreen before that, if applicable. This is to simulate fullscreen window stacking.
 
 ## Install
 ```
