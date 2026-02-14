@@ -35,31 +35,31 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
       CHyprColor(1, 1, 1, 1), 5000);
 #endif
 
-  if (pWindow->m_sFullscreenState.internal == state.internal &&
-      pWindow->m_sFullscreenState.client == state.client)
+  if (pWindow->m_fullscreenState.internal == state.internal &&
+      pWindow->m_fullscreenState.client == state.client)
     return;
 
   if (/*pWindow->m_bPinned && */ !pWindow->isFullscreen() &&
       state.internal != FSMODE_NONE) {
-    auto w = pWindow->m_pWorkspace;
-    if (w->m_bHasFullscreenWindow) {
+    auto w = pWindow->m_workspace;
+    if (w->m_hasFullscreenWindow) {
       PHLWINDOW wfs = w->getFullscreenWindow();
-      previous_fs[pWindow] = {wfs, wfs->m_sFullscreenState};
+      previous_fs[pWindow] = {wfs, wfs->m_fullscreenState};
     }
   }
 
-  (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
+  (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_original)(
       thisptr, pWindow, state);
 
-  if (pWindow->m_bPinFullscreened && state.internal == FSMODE_NONE) {
-    pWindow->m_bPinned = true;
-    pWindow->m_bPinFullscreened = false;
+  if (pWindow->m_pinFullscreened && state.internal == FSMODE_NONE) {
+    pWindow->m_pinned = true;
+    pWindow->m_pinFullscreened = false;
   }
 
   if (state.internal == FSMODE_NONE && previous_fs.contains(pWindow)) {
     Status old_fs = previous_fs[pWindow];
     if (valid(old_fs.window))
-      (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
+      (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_original)(
           thisptr, old_fs.window, old_fs.state);
 
     previous_fs.erase(pWindow);
@@ -74,13 +74,13 @@ void hkCloseWindow(CCompositor *thisptr, PHLWINDOW pWindow) {
   if (pWindow->isFullscreen() && previous_fs.contains(pWindow)) {
     Status old_fs = previous_fs[pWindow];
     if (valid(old_fs.window))
-      (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_pOriginal)(
+      (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_original)(
           thisptr, old_fs.window, old_fs.state);
 
     previous_fs.erase(pWindow);
   }
 
-  (*(origCloseWindow)g_pCloseWindowHook->m_pOriginal)(thisptr, pWindow);
+  (*(origCloseWindow)g_pCloseWindowHook->m_original)(thisptr, pWindow);
 }
 
 APICALL EXPORT std::string PLUGIN_API_VERSION() { return HYPRLAND_API_VERSION; }
