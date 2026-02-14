@@ -1,7 +1,9 @@
 #include "hyprland/src/Compositor.hpp"
-#include "hyprland/src/desktop/Window.hpp"
 #include "hyprland/src/desktop/Workspace.hpp"
+#include "hyprland/src/desktop/view/Window.hpp"
 #include "hyprland/src/plugins/PluginAPI.hpp"
+
+using namespace Desktop::View;
 
 #ifdef DEBUG
 #include <string>
