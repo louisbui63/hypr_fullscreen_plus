@@ -86,6 +86,7 @@ inline CFunctionHook *g_pCloseWindowHook = nullptr;
 typedef void (*origCloseWindow)(CCompositor *, PHLWINDOW);
 
 void hkCloseWindow(CCompositor *thisptr, PHLWINDOW pWindow) {
+  HyprlandAPI::addNotification(PHANDLE, "", CHyprColor(1, 1, 1, 1), 0);
   if (Fullscreen::controller()->isFullscreen(pWindow) &&
       previous_fs.contains(pWindow)) {
     Status old_fs = previous_fs[pWindow];
@@ -96,7 +97,6 @@ void hkCloseWindow(CCompositor *thisptr, PHLWINDOW pWindow) {
 
     previous_fs.erase(pWindow);
   }
-
   (*(origCloseWindow)g_pCloseWindowHook->m_original)(thisptr, pWindow);
 }
 
