@@ -1,9 +1,11 @@
 #include "hyprland/src/Compositor.hpp"
 #include "hyprland/src/desktop/Workspace.hpp"
 #include "hyprland/src/desktop/view/Window.hpp"
+#include "hyprland/src/managers/fullscreen/FullscreenController.hpp"
 #include "hyprland/src/plugins/PluginAPI.hpp"
 
-using namespace Desktop::View;
+// using namespace Desktop::View;
+using namespace Fullscreen;
 
 #ifdef DEBUG
 #include <string>
@@ -12,20 +14,25 @@ using namespace Desktop::View;
 
 struct Status {
   PHLWINDOW window;
-  SFullscreenState state;
+  SFullscreenMode state;
 };
 
 std::unordered_map<PHLWINDOW, Status> previous_fs{};
 
 inline HANDLE PHANDLE = nullptr;
 
-inline CFunctionHook *g_pSetWindowFullscreenHook = nullptr;
+// inline CFunctionHook *g_pSetWindowFullscreenHook = nullptr;
+inline CFunctionHook *g_setFullscreenModeHook = nullptr;
 
-typedef void (*origSetWindowFullscreen)(CCompositor *, PHLWINDOW,
-                                        SFullscreenState);
+typedef void (*origSetFullscreenMode)(CFullscreenController *, PHLWINDOW,
+                                      std::optional<eFullscreenMode>,
+                                      std::optional<eFullscreenMode>,
+                                      std::optional<bool>);
 
-void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
-                           SFullscreenState state) {
+void hkSetFullscreenMode(CFullscreenController *thisptr, PHLWINDOW pWindow,
+                         std::optional<eFullscreenMode> internal = std::nullopt,
+                         std::optional<eFullscreenMode> client = std::nullopt,
+                         std::optional<bool> layoutAware = std::nullopt) {
 
 #ifdef DEBUG
   HyprlandAPI::addNotification(
@@ -37,32 +44,38 @@ void hkSetWindowFullscreen(CCompositor *thisptr, PHLWINDOW pWindow,
       CHyprColor(1, 1, 1, 1), 5000);
 #endif
 
-  if (pWindow->m_fullscreenState.internal == state.internal &&
-      pWindow->m_fullscreenState.client == state.client)
+  SFullscreenMode modes = thisptr->getFullscreenModes(pWindow);
+
+  if ((!internal || modes.internal == *internal) &&
+      (!client || modes.client == *client))
     return;
 
-  if (/*pWindow->m_bPinned && */ !pWindow->isFullscreen() &&
-      state.internal != FSMODE_NONE) {
+  eFullscreenMode target_internal = (internal) ? *internal : modes.internal;
+  eFullscreenMode target_client = (client) ? *client : modes.client;
+
+  if (/*pWindow->m_bPinned && */ !thisptr->isFullscreen(pWindow) &&
+      target_internal != FSMODE_NONE) {
     auto w = pWindow->m_workspace;
-    if (w->m_hasFullscreenWindow) {
-      PHLWINDOW wfs = w->getFullscreenWindow();
-      previous_fs[pWindow] = {wfs, wfs->m_fullscreenState};
+    if (thisptr->hasFullscreen(w)) {
+      PHLWINDOW wfs = thisptr->getFullscreenWindow(w);
+      previous_fs[pWindow] = {wfs, thisptr->getFullscreenModes(wfs)};
     }
   }
 
-  (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_original)(
-      thisptr, pWindow, state);
+  (*(origSetFullscreenMode)g_setFullscreenModeHook->m_original)(
+      thisptr, pWindow, internal, client, layoutAware);
 
-  if (pWindow->m_pinFullscreened && state.internal == FSMODE_NONE) {
+  if (pWindow->m_pinFullscreened && target_internal == FSMODE_NONE) {
     pWindow->m_pinned = true;
     pWindow->m_pinFullscreened = false;
   }
 
-  if (state.internal == FSMODE_NONE && previous_fs.contains(pWindow)) {
+  if (target_internal == FSMODE_NONE && previous_fs.contains(pWindow)) {
     Status old_fs = previous_fs[pWindow];
     if (valid(old_fs.window))
-      (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_original)(
-          thisptr, old_fs.window, old_fs.state);
+      (*(origSetFullscreenMode)g_setFullscreenModeHook->m_original)(
+          thisptr, old_fs.window, old_fs.state.internal, old_fs.state.client,
+          std::nullopt);
 
     previous_fs.erase(pWindow);
   }
@@ -73,11 +86,13 @@ inline CFunctionHook *g_pCloseWindowHook = nullptr;
 typedef void (*origCloseWindow)(CCompositor *, PHLWINDOW);
 
 void hkCloseWindow(CCompositor *thisptr, PHLWINDOW pWindow) {
-  if (pWindow->isFullscreen() && previous_fs.contains(pWindow)) {
+  if (Fullscreen::controller()->isFullscreen(pWindow) &&
+      previous_fs.contains(pWindow)) {
     Status old_fs = previous_fs[pWindow];
     if (valid(old_fs.window))
-      (*(origSetWindowFullscreen)g_pSetWindowFullscreenHook->m_original)(
-          thisptr, old_fs.window, old_fs.state);
+      (*(origSetFullscreenMode)g_setFullscreenModeHook->m_original)(
+          &*Fullscreen::controller(), old_fs.window, old_fs.state.internal,
+          old_fs.state.client, std::nullopt);
 
     previous_fs.erase(pWindow);
   }
@@ -91,10 +106,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   PHANDLE = handle;
 
   static const auto SWFS_METHODS =
-      HyprlandAPI::findFunctionsByName(PHANDLE, "setWindowFullscreenState");
-  g_pSetWindowFullscreenHook = HyprlandAPI::createFunctionHook(
-      handle, SWFS_METHODS[0].address, (void *)&hkSetWindowFullscreen);
-  g_pSetWindowFullscreenHook->hook();
+      HyprlandAPI::findFunctionsByName(PHANDLE, "setFullscreenMode");
+  g_setFullscreenModeHook = HyprlandAPI::createFunctionHook(
+      handle, SWFS_METHODS[0].address, (void *)&hkSetFullscreenMode);
+  g_setFullscreenModeHook->hook();
 
   static const auto CW_METHODS =
       HyprlandAPI::findFunctionsByName(PHANDLE, "closeWindow");
@@ -103,7 +118,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   g_pCloseWindowHook->hook();
 
   return {"hypr_fullscreen_plus", "Makes fullscreen better", "louisbui63",
-          "0.0.3"};
+          "0.0.4"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {}
