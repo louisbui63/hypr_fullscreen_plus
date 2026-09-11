@@ -10,7 +10,6 @@ using namespace Fullscreen;
 #ifdef __DEBUG
 #include <string>
 #endif
-#include <unordered_map>
 
 struct Status {
   PHLWINDOW window;
@@ -18,6 +17,7 @@ struct Status {
 };
 
 std::unordered_map<PHLWINDOW, Status> previous_fs{};
+std::unordered_map<PHLWINDOW, Vector2D> previous_position{};
 
 inline HANDLE PHANDLE = nullptr;
 
@@ -82,6 +82,7 @@ void hkSetFullscreenMode(CFullscreenController *thisptr, PHLWINDOW pWindow,
 
   if (/*pWindow->m_bPinned && */ !thisptr->isFullscreen(pWindow) &&
       target_internal != FSMODE_NONE) {
+    previous_position[pWindow] = pWindow->m_reportedPosition;
     auto w = pWindow->m_workspace;
     if (thisptr->hasFullscreen(w)) {
 #ifdef __DEBUG
@@ -100,6 +101,9 @@ void hkSetFullscreenMode(CFullscreenController *thisptr, PHLWINDOW pWindow,
     pWindow->m_pinFullscreened = false;
   }
 
+  if (target_internal == FSMODE_NONE && previous_position.contains(pWindow)) {
+    pWindow->m_reportedPosition = previous_position[pWindow];
+  }
   if (target_internal == FSMODE_NONE && previous_fs.contains(pWindow)) {
 #ifdef __DEBUG
     HyprlandAPI::addNotification(PHANDLE, pWindow->m_title + " get",
